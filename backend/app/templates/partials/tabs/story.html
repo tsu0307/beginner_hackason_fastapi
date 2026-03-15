@@ -7,14 +7,20 @@
   </div>
   {% if not profile %}
   <p class="story-status">状態: 未開始</p>
-  <p class="hint">先にプロフィールを開始してください。</p>
+  <p class="hint">先にプロフィールを作成してください。</p>
   {% elif not selected_nodes %}
-  <p class="story-status">状態: 分岐生成前</p>
+  <p class="story-status">状態: 分岐未選択</p>
   <p class="hint">先に分岐を選択してください。</p>
   {% elif story %}
   <p class="story-status">状態: 生成済み</p>
   <div class="story-panel">
-    <p class="story">{{ story }}</p>
+    <div class="actions">
+      <button class="button button-secondary" type="button" data-copy-story data-story-target="story-summary-text">
+        要約をコピー
+      </button>
+      <span class="hint" id="story-copy-status" aria-live="polite"></span>
+    </div>
+    <p class="story" id="story-summary-text">{{ story }}</p>
   </div>
   {% else %}
   <p class="story-status">状態: 未生成</p>

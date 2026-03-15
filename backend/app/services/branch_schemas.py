@@ -35,9 +35,9 @@ class BranchCandidate(BaseModel):
             "high": "high",
             "medium": "medium",
             "low": "low",
-            "高": "high",
-            "中": "medium",
-            "低": "low",
+            "\u9ad8": "high",
+            "\u4e2d": "medium",
+            "\u4f4e": "low",
         }
         return mapping.get(normalized, normalized)
 

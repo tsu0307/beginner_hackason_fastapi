@@ -3,6 +3,46 @@ from __future__ import annotations
 from typing import Any
 
 
+def _normalize_happiness(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    normalized = value.strip().lower()
+    mapping = {
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+        "\u9ad8": "high",
+        "\u4e2d": "medium",
+        "\u4f4e": "low",
+    }
+    if normalized in mapping:
+        return mapping[normalized]
+    if "\u9ad8" in value:
+        return "high"
+    if "\u4e2d" in value:
+        return "medium"
+    if "\u4f4e" in value:
+        return "low"
+    return normalized
+
+
+def _normalize_level(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    normalized = value.strip().lower()
+    mapping = {
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+        "\u9ad8": "high",
+        "\u4e2d": "medium",
+        "\u4f4e": "low",
+    }
+    return mapping.get(normalized, normalized)
+
+
 def build_tree_view_model(nodes: list[dict[str, Any]], current_node_id: str | None = None) -> dict[str, Any]:
     if not nodes:
         return {"width": 320, "height": 160, "nodes": [], "edges": []}
@@ -31,8 +71,14 @@ def build_tree_view_model(nodes: list[dict[str, Any]], current_node_id: str | No
         width = min(max(min_width, 120 + title_len * 12), max_width)
         chars_per_line = max(10, (width - 32) // 16)
         title_lines = max(1, (title_len + chars_per_line - 1) // chars_per_line)
-        meta_lines = 3 + (1 if node.get("happiness") else 0)
-        height = base_height + max(0, title_lines - 1) * 24 + meta_lines * 10
+
+        meta_lines = 2
+        if node.get("stability") or node.get("challenge"):
+            meta_lines += 1
+        if node.get("happiness"):
+            meta_lines += 1
+
+        height = base_height + max(0, title_lines - 1) * 24 + meta_lines * 18
 
         helper_text = ""
         if node.get("is_branch_candidate"):
@@ -84,6 +130,10 @@ def build_tree_view_model(nodes: list[dict[str, Any]], current_node_id: str | No
     for node in nodes:
         pos = positions[node["id"]]
         size = dimensions[node["id"]]
+        happiness = _normalize_happiness(node.get("happiness", ""))
+        stability = _normalize_level(node.get("stability", ""))
+        challenge = _normalize_level(node.get("challenge", ""))
+
         view_nodes.append(
             {
                 "id": node["id"],
@@ -96,7 +146,9 @@ def build_tree_view_model(nodes: list[dict[str, Any]], current_node_id: str | No
                 "selected": node.get("selected", False),
                 "visited": node.get("visited", False),
                 "is_branch_candidate": node.get("is_branch_candidate", False),
-                "happiness": node.get("happiness", ""),
+                "happiness": happiness,
+                "stability": stability,
+                "challenge": challenge,
                 "result": node.get("result", ""),
                 "is_current": node.get("id") == current_node_id,
                 "year": node.get("year"),

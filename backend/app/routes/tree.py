@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse
 
 from ..services.simulator import (
     activate_existing_node,
+    add_custom_branch,
     generate_branches_for_node,
     get_branch_by_id,
     select_branch,
@@ -60,5 +61,13 @@ async def tree_select_branch(request: Request, branch_id: str = Form(...)) -> HT
     session_id, state = current_state(request)
     branch = get_branch_by_id(state, branch_id)
     state = await select_branch(state, branch, panel="tree")
+    save_state(session_id, state)
+    return render_app(request, session_id, state)
+
+
+@router.post("/tree/custom", response_class=HTMLResponse)
+async def tree_custom_branch(request: Request, event: str = Form(...)) -> HTMLResponse:
+    session_id, state = current_state(request)
+    state = await add_custom_branch(state, event, panel="tree")
     save_state(session_id, state)
     return render_app(request, session_id, state)

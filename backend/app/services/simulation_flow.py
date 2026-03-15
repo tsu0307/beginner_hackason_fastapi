@@ -1,5 +1,3 @@
-"""役割: シミュレーション進行中の状態遷移を担当する。"""
-
 from __future__ import annotations
 
 import asyncio
@@ -7,6 +5,9 @@ import copy
 import uuid
 from typing import Any
 
+from pydantic import ValidationError
+
+from .branch_schemas import BranchCandidate, BranchResponse
 from .llm_gateway import call_llm
 from .openai_service import parse_json_text
 from .prompt_builder import build_branch_prompt, build_result_prompt, build_story_prompt
@@ -24,42 +25,100 @@ def _new_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-async def _generate_branches(profile: dict[str, Any], event: str, history: list[str]) -> list[dict[str, Any]]:
-    system, message = build_branch_prompt(profile, event, history)
+def _build_node_from_branch(
+    branch: BranchCandidate,
+    *,
+    parent_id: str | None,
+    current_year: int,
+    current_age: int,
+    selected: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": _new_id(),
+        "event": branch.event,
+        "stability": branch.stability,
+        "challenge": branch.challenge,
+        "event_type": branch.event_type,
+        "duration_years": branch.duration_years,
+        "year": current_year + branch.duration_years,
+        "age": current_age + branch.duration_years,
+        "parent_id": parent_id,
+        "selected": selected,
+    }
+
+
+def _parse_branch_response(payload: Any) -> list[BranchCandidate]:
+    try:
+        return BranchResponse.model_validate(payload).branches
+    except ValidationError as exc:
+        raise ValueError(f"分岐JSONの形式が不正です: {exc}") from exc
+
+
+def _current_point(state: dict[str, Any]) -> tuple[int, int]:
+    current_node = state.get("current_node")
+    if current_node:
+        return int(current_node["year"]), int(current_node["age"])
+
+    profile = state["profile"]
+    return int(profile["birth_year"]) + int(profile["current_age"]), int(profile["current_age"])
+
+
+async def _generate_branches(
+    state: dict[str, Any],
+    profile: dict[str, Any],
+    event: str,
+    history: list[str],
+    *,
+    parent_id: str | None,
+    current_year: int,
+    current_age: int,
+) -> list[dict[str, Any]]:
+    runtime_profile = {**profile, "current_age": current_age}
+    system, message = build_branch_prompt(runtime_profile, event, history)
     text = await asyncio.to_thread(call_llm, profile.get("provider", "openai"), system, message, True)
     parsed = parse_json_text(text)
-    branches = parsed.get("branches", [])
-    if not branches:
-        raise ValueError("分岐候補を生成できませんでした。")
-
+    candidates = _parse_branch_response(parsed)
     return [
-        {
-            "id": _new_id(),
-            "event": branch.get("event", "新しい分岐"),
-            "stability": branch.get("stability", "medium"),
-            "challenge": branch.get("challenge", "medium"),
-            "selected": False,
-        }
-        for branch in branches[:2]
+        _build_node_from_branch(
+            candidate,
+            parent_id=parent_id,
+            current_year=current_year,
+            current_age=current_age,
+        )
+        for candidate in candidates[:2]
     ]
 
 
-async def start_simulation(state: dict[str, Any], event: str) -> dict[str, Any]:
+async def start_simulation(state: dict[str, Any], event: str, event_year: int, event_age: int) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
+        if event_age <= 0 or event_age >= 100:
+            raise ValueError("イベント年齢は 1 から 99 の範囲で入力してください。")
+
         root = {
             "id": _new_id(),
             "event": event.strip(),
             "stability": "medium",
             "challenge": "medium",
+            "event_type": "instant_event",
+            "duration_years": 0,
+            "year": event_year,
+            "age": event_age,
             "selected": True,
             "parent_id": None,
         }
         new_state["nodes"] = [root]
         new_state["current_node_id"] = root["id"]
-        new_state["branches"] = await _generate_branches(new_state["profile"], root["event"], [])
-        for branch in new_state["branches"]:
-            branch["parent_id"] = root["id"]
+        new_state = _refresh_derived(new_state)
+        new_state["branches"] = await _generate_branches(
+            new_state,
+            new_state["profile"],
+            root["event"],
+            [],
+            parent_id=root["id"],
+            current_year=root["year"],
+            current_age=root["age"],
+        )
         new_state["stage"] = "branches"
         new_state["panel"] = "main"
         new_state["error"] = ""
@@ -80,7 +139,8 @@ async def select_branch(state: dict[str, Any], branch: dict[str, Any]) -> dict[s
     new_state = copy.deepcopy(state)
     try:
         history = [node["event"] for node in new_state.get("nodes", []) if node.get("selected")]
-        system, message = build_result_prompt(new_state["profile"], branch["event"], history)
+        runtime_profile = {**new_state["profile"], "current_age": branch["age"]}
+        system, message = build_result_prompt(runtime_profile, branch["event"], history)
         text = await asyncio.to_thread(call_llm, new_state.get("provider", "openai"), system, message, True)
         parsed = parse_json_text(text)
         selected_branch = {
@@ -105,18 +165,23 @@ async def select_branch(state: dict[str, Any], branch: dict[str, Any]) -> dict[s
 def add_custom_branch(state: dict[str, Any], event: str) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
-        current_id = new_state.get("current_node_id")
-        if not current_id:
-            raise ValueError("基準となるノードが見つかりません。")
+        current = next((node for node in new_state.get("nodes", []) if node["id"] == new_state.get("current_node_id")), None)
+        if not current:
+            raise ValueError("現在のノードが見つかりません。")
+        custom_branch = BranchCandidate(
+            event=event.strip(),
+            stability="medium",
+            challenge="medium",
+            event_type="progression_event",
+            duration_years=1,
+        )
         new_state["branches"].append(
-            {
-                "id": _new_id(),
-                "event": event.strip(),
-                "stability": "medium",
-                "challenge": "medium",
-                "selected": False,
-                "parent_id": current_id,
-            }
+            _build_node_from_branch(
+                custom_branch,
+                parent_id=current["id"],
+                current_year=int(current["year"]),
+                current_age=int(current["age"]),
+            )
         )
         new_state["stage"] = "branches"
         new_state["panel"] = "main"
@@ -133,9 +198,15 @@ async def continue_simulation(state: dict[str, Any]) -> dict[str, Any]:
         if not current:
             raise ValueError("現在のノードが見つかりません。")
         history = [node["event"] for node in new_state["nodes"] if node.get("selected")]
-        new_state["branches"] = await _generate_branches(new_state["profile"], current["event"], history)
-        for branch in new_state["branches"]:
-            branch["parent_id"] = current["id"]
+        new_state["branches"] = await _generate_branches(
+            new_state,
+            new_state["profile"],
+            current["event"],
+            history,
+            parent_id=current["id"],
+            current_year=int(current["year"]),
+            current_age=int(current["age"]),
+        )
         new_state["stage"] = "branches"
         new_state["panel"] = "main"
         new_state["error"] = ""

@@ -55,9 +55,14 @@ async def setup(
 
 
 @router.post("/event", response_class=HTMLResponse)
-async def submit_event(request: Request, event: str = Form(...)) -> HTMLResponse:
+async def submit_event(
+    request: Request,
+    event: str = Form(...),
+    event_year: int = Form(...),
+    event_age: int = Form(...),
+) -> HTMLResponse:
     session_id, state = current_state(request)
-    state = await start_simulation(state, event)
+    state = await start_simulation(state, event, event_year, event_age)
     save_state(session_id, state)
     return render_app(request, session_id, state)
 

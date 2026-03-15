@@ -2,7 +2,7 @@
   <div class="section-head">
     <div>
       <h2>ツリー表示</h2>
-      <p>生成されたノードを横スクロールの樹形図で確認します。</p>
+      <p>選択した分岐をツリー構造で確認できます。</p>
     </div>
     <div class="meta-row">
       <span class="pill">API: {{ state.provider|upper }}</span>
@@ -44,6 +44,7 @@
         <foreignObject x="16" y="34" width="{{ node.width - 32 }}" height="{{ node.height - 44 }}">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-node-title-wrap">
             <div class="tree-node-title">{{ node.title }}</div>
+            <div class="tree-node-meta">{{ node.year }}年 / {{ node.age }}歳</div>
             {% if node.happiness %}
             <div class="tree-node-meta">幸福度: {{ node.happiness }}</div>
             {% endif %}

@@ -2,20 +2,40 @@
   <div class="section-head">
     <div>
       <h2>ツリー表示</h2>
-      <p>選択した分岐をツリー構造で確認できます。</p>
-    </div>
-    <div class="meta-row">
-      <span class="pill">API: {{ state.provider|upper }}</span>
-      <span class="pill">全ノード数: {{ tree_nodes|length }}</span>
+      <p>最初の分岐点の作成から次の二択生成、結果確認までをツリー上で進めます。</p>
     </div>
   </div>
   {% if profile %}
-  <div class="summary-bar">
+  <div class="profile-inline">
     <strong>{{ profile.name }}</strong>
     <span>{{ profile.current_age }}歳</span>
   </div>
   {% endif %}
-  {% if tree_nodes %}
+
+  {% if profile and not tree_nodes %}
+  <form class="stack" hx-post="/tree/start" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+    <label>
+      <span>最初の分岐点</span>
+      <textarea
+        name="event"
+        rows="4"
+        placeholder="例: 高校卒業後に福祉分野へ進むか迷う"
+        required
+      ></textarea>
+    </label>
+    <div class="stack event-timing-form">
+      <label class="field-left">
+        <span>分岐年</span>
+        <input type="number" name="event_year" placeholder="2024" required>
+      </label>
+      <label class="field-left">
+        <span>その時の年齢</span>
+        <input type="number" name="event_age" placeholder="18" required>
+      </label>
+    </div>
+    <button class="button" type="submit">最初のノードを作成</button>
+  </form>
+  {% elif tree_nodes %}
   <div class="tree-canvas-wrap">
     <svg
       class="tree-canvas"
@@ -27,7 +47,7 @@
     >
       {% for edge in tree_view.edges %}
       <path
-        d="M {{ edge.x1 }} {{ edge.y1 }} C {{ edge.x1 + 40 }} {{ edge.y1 }}, {{ edge.x2 - 40 }} {{ edge.y2 }}, {{ edge.x2 }} {{ edge.y2 }}"
+        d="M {{ edge.x1 }} {{ edge.y1 }} L {{ edge.x1 }} {{ edge.mid_y }} L {{ edge.x2 }} {{ edge.mid_y }} L {{ edge.x2 }} {{ edge.y2 }}"
         class="tree-edge {{ 'is-selected' if edge.selected else '' }}"
       />
       {% endfor %}
@@ -35,10 +55,10 @@
       {% for node in tree_view.nodes %}
       <g
         transform="translate({{ node.x }}, {{ node.y }})"
-        hx-post="/tree/jump"
+        hx-post="{{ '/tree/select-branch' if node.is_branch_candidate else '/tree/generate' }}"
         hx-target="#app-shell"
         hx-swap="innerHTML"
-        hx-vals='{"node_id": "{{ node.id }}"}'
+        hx-vals='{{ {"branch_id": node.id}|tojson if node.is_branch_candidate else {"node_id": node.id}|tojson }}'
         hx-indicator="#loading-indicator"
         class="tree-node-group"
       >
@@ -46,7 +66,7 @@
           width="{{ node.width }}"
           height="{{ node.height }}"
           rx="16"
-          class="tree-node-box {{ 'is-selected' if node.selected else '' }}"
+          class="tree-node-box {{ 'is-selected' if node.selected else '' }} {{ 'is-branch-candidate' if node.is_branch_candidate else '' }}"
         />
         <text x="16" y="24" class="tree-node-status">{{ node.status }}</text>
         <foreignObject x="16" y="34" width="{{ node.width - 32 }}" height="{{ node.height - 44 }}">
@@ -54,7 +74,22 @@
             <div class="tree-node-title">{{ node.title }}</div>
             <div class="tree-node-meta">{{ node.year }}年 / {{ node.age }}歳</div>
             {% if node.happiness %}
-            <div class="tree-node-meta">幸福度: {{ node.happiness }}</div>
+            <div class="tree-node-meta">
+              幸福度:
+              <span class="level-text level-{{ 'high' if node.happiness == 'high' else 'medium' if node.happiness == 'medium' else 'low' }}">
+                {{ "高" if node.happiness == "high" else "中" if node.happiness == "medium" else "低" }}
+              </span>
+            </div>
+            {% endif %}
+            {% if node.result and node.is_current %}
+            <details class="tree-node-result" open>
+              <summary>結果を表示</summary>
+              <div class="tree-node-result-body">{{ node.result }}</div>
+            </details>
+            {% elif node.is_branch_candidate %}
+            <div class="tree-node-meta">クリックするとこの候補を確定します。</div>
+            {% else %}
+            <div class="tree-node-meta">クリックするとこの地点から次の二択を生成します。</div>
             {% endif %}
           </div>
         </foreignObject>
@@ -63,6 +98,6 @@
     </svg>
   </div>
   {% else %}
-  <p class="hint">まだツリーは生成されていません。</p>
+  <p class="hint">先にプロフィールを作成すると、ここから分岐ツリーを開始できます。</p>
   {% endif %}
 </div>

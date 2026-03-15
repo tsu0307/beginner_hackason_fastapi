@@ -4,25 +4,12 @@
       <h2>ストーリー要約</h2>
       <p>選択した分岐をもとに物語として要約します。</p>
     </div>
-    <div class="meta-row">
-      <span class="pill">API: {{ state.provider|upper }}</span>
-      <button
-        class="button"
-        type="button"
-        hx-post="/story"
-        hx-target="#app-shell"
-        hx-swap="innerHTML"
-        hx-indicator="#loading-indicator"
-      >
-        AIでストーリーを要約
-      </button>
-    </div>
   </div>
   {% if not profile %}
   <p class="story-status">状態: 未開始</p>
   <p class="hint">先にプロフィールを開始してください。</p>
   {% elif not selected_nodes %}
-  <p class="story-status">状態: 分岐待ち</p>
+  <p class="story-status">状態: 分岐生成前</p>
   <p class="hint">先に分岐を選択してください。</p>
   {% elif story %}
   <p class="story-status">状態: 生成済み</p>
@@ -31,24 +18,6 @@
   </div>
   {% else %}
   <p class="story-status">状態: 未生成</p>
-  <p class="hint">要約生成を押すとストーリーを作成します。</p>
+  <p class="hint">このタブを開くと要約結果が表示されます。</p>
   {% endif %}
-
-  <div class="panel-block">
-    <h3>選択履歴</h3>
-    <p class="hint">選択済みノード数: {{ selected_nodes|length }}</p>
-    <ol class="history-list">
-      {% for node in selected_nodes %}
-      <li>
-        <strong>{{ node.event }}</strong>
-        <span>{{ node.year }}年 / {{ node.age }}歳</span>
-        {% if node.result %}
-        <span>{{ node.result }}</span>
-        {% endif %}
-      </li>
-      {% else %}
-      <li>まだ履歴はありません。</li>
-      {% endfor %}
-    </ol>
-  </div>
 </div>

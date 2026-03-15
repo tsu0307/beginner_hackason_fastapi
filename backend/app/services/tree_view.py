@@ -1,5 +1,3 @@
-"""役割: ツリー表示用の座標計算と描画モデル生成を担当する。"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -11,7 +9,7 @@ def build_tree_view_model(nodes: list[dict[str, Any]]) -> dict[str, Any]:
 
     min_width = 220
     max_width = 360
-    base_height = 84
+    base_height = 92
     col_gap = 120
     row_gap = 34
     pad_x = 28
@@ -32,8 +30,8 @@ def build_tree_view_model(nodes: list[dict[str, Any]]) -> dict[str, Any]:
         width = min(max(min_width, 120 + title_len * 12), max_width)
         chars_per_line = max(10, (width - 32) // 16)
         title_lines = max(1, (title_len + chars_per_line - 1) // chars_per_line)
-        meta_lines = 2 if node.get("happiness") else 1
-        height = base_height + max(0, title_lines - 1) * 24 + meta_lines * 8
+        meta_lines = 3 + (1 if node.get("happiness") else 0)
+        height = base_height + max(0, title_lines - 1) * 24 + meta_lines * 10
         dimensions[node["id"]] = {"width": width, "height": height}
         return dimensions[node["id"]]
 
@@ -73,6 +71,10 @@ def build_tree_view_model(nodes: list[dict[str, Any]]) -> dict[str, Any]:
                 "selected": node.get("selected", False),
                 "happiness": node.get("happiness", ""),
                 "result": node.get("result", ""),
+                "year": node.get("year"),
+                "age": node.get("age"),
+                "event_type": node.get("event_type"),
+                "duration_years": node.get("duration_years"),
             }
         )
 

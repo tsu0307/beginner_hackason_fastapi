@@ -1,5 +1,3 @@
-"""役割: OpenAI / Gemini の呼び出し先を切り替える。"""
-
 from __future__ import annotations
 
 from .gemini_service import call_gemini

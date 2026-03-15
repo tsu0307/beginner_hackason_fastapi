@@ -18,6 +18,7 @@ def call_gemini(
         raise RuntimeError("GEMINI_API_KEY が設定されていません。")
 
     selected_model = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    print(f"DEBUG: Using Gemini model: {selected_model}")
     genai.configure(api_key=api_key)
 
     generation_config: dict[str, object] = {

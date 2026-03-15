@@ -6,7 +6,9 @@ from .openai_service import call_openai
 
 def call_llm(provider: str, system: str, user_message: str, json_mode: bool = True) -> str:
     # モックモードのチェック
-    if os.getenv("MOCK_MODE", "false").lower() == "true":
+    # load_dotenv(override=True) により、最新の .env.local が反映されているはず
+    mock_mode = os.getenv("MOCK_MODE", "false").lower()
+    if mock_mode == "true":
         prompt_lower = user_message.lower() + system.lower()
         
         # 分岐生成のモック
@@ -35,5 +37,6 @@ def call_llm(provider: str, system: str, user_message: str, json_mode: bool = Tr
         return "{}"
 
     if provider == "gemini":
+        # GEMINI_MODEL 環境変数は call_gemini 内で os.getenv される
         return call_gemini(system, user_message, None, json_mode)
     return call_openai(system, user_message, None, json_mode)

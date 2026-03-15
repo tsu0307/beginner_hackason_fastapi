@@ -26,5 +26,31 @@
     if (!loadingText) return;
     loadingText.textContent = loadingText.dataset.defaultText || "分岐を生成中...";
   });
+
+  document.body.addEventListener("click", async function (event) {
+    const button = event.target.closest("[data-copy-story]");
+    if (!button) return;
+
+    const targetId = button.getAttribute("data-story-target");
+    const source = targetId ? document.getElementById(targetId) : null;
+    const status = document.getElementById("story-copy-status");
+    const text = source ? source.textContent.trim() : "";
+
+    if (!text) {
+      if (status) status.textContent = "コピー対象がありません";
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      if (status) status.textContent = "コピーしました";
+      window.setTimeout(function () {
+        const latestStatus = document.getElementById("story-copy-status");
+        if (latestStatus) latestStatus.textContent = "";
+      }, 2000);
+    } catch (_) {
+      if (status) status.textContent = "コピーできませんでした";
+    }
+  });
 </script>
 {% endblock %}

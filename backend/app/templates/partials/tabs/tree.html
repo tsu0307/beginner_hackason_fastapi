@@ -19,23 +19,33 @@
       <textarea
         name="event"
         rows="4"
-        placeholder="例: 高校卒業後にどの進路へ進むか迷う"
+        placeholder="例: 中学校入学後にどの部活動へ入るか"
         required
       ></textarea>
     </label>
     <div class="stack event-timing-form">
       <label class="field-left">
         <span>分岐年</span>
-        <input type="number" name="event_year" placeholder="2024" required>
+        <input type="number" name="event_year" placeholder="例: 2024" required>
       </label>
       <label class="field-left">
         <span>その時の年齢</span>
-        <input type="number" name="event_age" placeholder="18" required>
+        <input type="number" name="event_age" placeholder="例: 18" required>
       </label>
     </div>
     <button class="button" type="submit">最初のノードを作成</button>
   </form>
   {% elif tree_nodes %}
+  {% if current_node %}
+  <form class="stack inline-form" hx-post="/tree/custom" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
+    <label>
+      <span>分岐を手動で追加</span>
+      <input type="text" name="event" placeholder="例: 学校外のボランティア活動に参加する" required>
+    </label>
+    <button class="button button-secondary" type="submit">追加</button>
+  </form>
+  {% endif %}
+
   <div class="tree-canvas-wrap">
     <svg
       class="tree-canvas"
@@ -74,10 +84,26 @@
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-node-title-wrap">
             <div class="tree-node-title">{{ node.title }}</div>
             <div class="tree-node-meta">{{ node.year }}年 / {{ node.age }}歳</div>
+            {% if node.stability or node.challenge %}
+            <div class="tree-node-meta">
+              <span>
+                安定度:
+                <span class="level-text level-{{ node.stability or 'medium' }}">
+                  {{ "高" if node.stability == "high" else "中" if node.stability == "medium" else "低" }}
+                </span>
+              </span>
+              <span>
+                挑戦度:
+                <span class="level-text level-{{ node.challenge or 'medium' }}">
+                  {{ "高" if node.challenge == "high" else "中" if node.challenge == "medium" else "低" }}
+                </span>
+              </span>
+            </div>
+            {% endif %}
             {% if node.happiness %}
             <div class="tree-node-meta">
               幸福度:
-              <span class="level-text level-{{ 'high' if node.happiness == 'high' else 'medium' if node.happiness == 'medium' else 'low' }}">
+              <span class="level-text level-{{ node.happiness }}">
                 {{ "高" if node.happiness == "high" else "中" if node.happiness == "medium" else "低" }}
               </span>
             </div>
@@ -101,6 +127,6 @@
     </svg>
   </div>
   {% else %}
-  <p class="hint">先にプロフィールを作成すると、ここから分岐ツリーを開始できます。</p>
+  <p class="hint">先にプロフィールを作成すると、ここからツリーを開始できます。</p>
   {% endif %}
 </div>

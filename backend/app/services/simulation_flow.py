@@ -10,7 +10,12 @@ from pydantic import ValidationError
 from .branch_schemas import BranchCandidate, BranchResponse
 from .llm_gateway import call_llm
 from .openai_service import parse_json_text
-from .prompt_builder import build_branch_prompt, build_result_prompt, build_story_prompt
+from .prompt_builder import (
+    build_branch_prompt,
+    build_custom_branch_prompt,
+    build_result_prompt,
+    build_story_prompt,
+)
 
 
 def _refresh_derived(state: dict[str, Any]) -> dict[str, Any]:
@@ -27,6 +32,30 @@ def _new_id() -> str:
 
 def _node_lookup(nodes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {node["id"]: node for node in nodes}
+
+
+def _normalize_happiness(value: Any) -> str:
+    if not isinstance(value, str):
+        return "medium"
+
+    normalized = value.strip().lower()
+    mapping = {
+        "high": "high",
+        "medium": "medium",
+        "low": "low",
+        "高": "high",
+        "中": "medium",
+        "低": "low",
+    }
+    if normalized in mapping:
+        return mapping[normalized]
+    if "高" in value:
+        return "high"
+    if "中" in value:
+        return "medium"
+    if "低" in value:
+        return "low"
+    return "medium"
 
 
 def _path_to_node(nodes: list[dict[str, Any]], node_id: str | None) -> list[dict[str, Any]]:
@@ -88,6 +117,13 @@ def _parse_branch_response(payload: Any) -> list[BranchCandidate]:
         raise ValueError(f"分岐候補JSONの形式が不正です: {exc}") from exc
 
 
+def _parse_branch_candidate(payload: Any) -> BranchCandidate:
+    try:
+        return BranchCandidate.model_validate(payload)
+    except ValidationError as exc:
+        raise ValueError(f"手動分岐JSONの形式が不正です: {exc}") from exc
+
+
 async def _generate_branches(
     state: dict[str, Any],
     profile: dict[str, Any],
@@ -98,7 +134,11 @@ async def _generate_branches(
     current_year: int,
     current_age: int,
 ) -> list[dict[str, Any]]:
-    runtime_profile = {**profile, "current_age": current_age}
+    runtime_profile = {
+        **profile,
+        "current_age": current_age,
+        "current_year": current_year,
+    }
     system, message = build_branch_prompt(runtime_profile, event, history)
     text = await asyncio.to_thread(call_llm, profile.get("provider", "openai"), system, message, True)
     parsed = parse_json_text(text)
@@ -114,6 +154,32 @@ async def _generate_branches(
     ]
 
 
+async def _classify_custom_branch(
+    state: dict[str, Any],
+    event: str,
+    history: list[str],
+    *,
+    parent_id: str,
+    current_year: int,
+    current_age: int,
+) -> dict[str, Any]:
+    runtime_profile = {
+        **state["profile"],
+        "current_age": current_age,
+        "current_year": current_year,
+    }
+    system, message = build_custom_branch_prompt(runtime_profile, event, history)
+    text = await asyncio.to_thread(call_llm, state.get("provider", "openai"), system, message, True)
+    parsed = parse_json_text(text)
+    candidate = _parse_branch_candidate(parsed)
+    return _build_node_from_branch(
+        candidate,
+        parent_id=parent_id,
+        current_year=current_year,
+        current_age=current_age,
+    )
+
+
 async def _resolve_node_result(
     state: dict[str, Any],
     node: dict[str, Any],
@@ -124,7 +190,7 @@ async def _resolve_node_result(
     text = await asyncio.to_thread(call_llm, state.get("provider", "openai"), system, message, True)
     parsed = parse_json_text(text)
     node["result"] = parsed.get("result_summary", parsed.get("result", "結果を生成できませんでした。"))
-    node["happiness"] = parsed.get("happiness", "medium")
+    node["happiness"] = _normalize_happiness(parsed.get("happiness", "medium"))
     return node
 
 
@@ -210,29 +276,28 @@ async def select_branch(state: dict[str, Any], branch: dict[str, Any], *, panel:
     return _refresh_derived(new_state)
 
 
-def add_custom_branch(state: dict[str, Any], event: str) -> dict[str, Any]:
+async def add_custom_branch(state: dict[str, Any], event: str, *, panel: str = "main") -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
         current = next((node for node in new_state.get("nodes", []) if node["id"] == new_state.get("current_node_id")), None)
         if not current:
             raise ValueError("現在のノードが見つかりません。")
-        custom_branch = BranchCandidate(
-            event=event.strip(),
-            stability="medium",
-            challenge="medium",
-            event_type="progression_event",
-            duration_years=1,
+
+        path = _mark_selected_path(new_state["nodes"], current["id"])
+        _mark_visited_path(new_state["nodes"], current["id"])
+        history = [node["event"] for node in path]
+
+        custom_branch = await _classify_custom_branch(
+            new_state,
+            event.strip(),
+            history,
+            parent_id=current["id"],
+            current_year=int(current["year"]),
+            current_age=int(current["age"]),
         )
-        new_state["branches"].append(
-            _build_node_from_branch(
-                custom_branch,
-                parent_id=current["id"],
-                current_year=int(current["year"]),
-                current_age=int(current["age"]),
-            )
-        )
+        new_state["branches"].append(custom_branch)
         new_state["stage"] = "branches"
-        new_state["panel"] = "main"
+        new_state["panel"] = panel
         new_state["error"] = ""
     except Exception as exc:
         new_state["error"] = str(exc)

@@ -82,7 +82,7 @@ async def choose_branch(request: Request, branch_id: str = Form(...)) -> HTMLRes
 @router.post("/branch/custom", response_class=HTMLResponse)
 async def custom_branch(request: Request, event: str = Form(...)) -> HTMLResponse:
     session_id, state = current_state(request)
-    state = add_custom_branch(state, event)
+    state = await add_custom_branch(state, event)
     save_state(session_id, state)
     return render_app(request, session_id, state)
 

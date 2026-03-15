@@ -1,6 +1,6 @@
 <div class="screen-body">
   {% if stage == "setup" %}
-  <form class="stack" hx-post="/setup" hx-target="#app-shell" hx-swap="innerHTML">
+  <form class="stack" hx-post="/setup" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
     <label>
       <span>使用するAPI</span>
       <span class="hint">`.env.local` に設定済みのキーを使います。</span>
@@ -59,7 +59,7 @@
       <span>{{ profile.current_age }}歳</span>
       <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
-    <form class="stack" hx-post="/event" hx-target="#app-shell" hx-swap="innerHTML">
+    <form class="stack" hx-post="/event" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
       <label>
         <span>最初の出来事</span>
         <textarea
@@ -93,7 +93,7 @@
     </div>
     <div class="branch-list">
       {% for branch in branches %}
-      <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML">
+      <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
         <input type="hidden" name="branch_id" value="{{ branch.id }}">
         <p class="branch-event">{{ branch.event }}</p>
         <div class="meta-row">
@@ -108,7 +108,7 @@
       </form>
       {% endfor %}
     </div>
-    <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML">
+    <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
       <label>
         <span>分岐を自由入力で追加</span>
         <input type="text" name="event" placeholder="例: 1年後に起業へ進む" required>
@@ -147,7 +147,7 @@
         type="button"
         hx-post="/continue"
         hx-target="#app-shell"
-        hx-swap="innerHTML"
+        hx-indicator="#loading-indicator"
       >
         次の分岐へ進む
       </button>

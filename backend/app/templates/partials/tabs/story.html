@@ -7,13 +7,14 @@
     <div class="meta-row">
       <span class="pill">API: {{ state.provider|upper }}</span>
       <button
-        class="button button-secondary button-small"
+        class="button"
         type="button"
         hx-post="/story"
         hx-target="#app-shell"
         hx-swap="innerHTML"
+        hx-indicator="#loading-indicator"
       >
-        要約生成
+        AIでストーリーを要約
       </button>
     </div>
   </div>

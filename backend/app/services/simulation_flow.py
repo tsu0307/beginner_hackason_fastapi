@@ -240,3 +240,22 @@ async def generate_story(state: dict[str, Any]) -> dict[str, Any]:
     except Exception as exc:
         new_state["error"] = str(exc)
     return _refresh_derived(new_state)
+
+
+async def jump_to_node(state: dict[str, Any], node_id: str) -> dict[str, Any]:
+    new_state = copy.deepcopy(state)
+    try:
+        nodes = new_state.get("nodes", [])
+        target = next((n for n in nodes if n["id"] == node_id), None)
+        if not target:
+            raise ValueError("指定されたノードが見つかりません。")
+
+        # ターゲットノードを現在のノードに設定
+        new_state["current_node_id"] = node_id
+        # ステージを結果画面にし、パネルをメインに切り替える
+        new_state["stage"] = "result"
+        new_state["panel"] = "main"
+        new_state["error"] = ""
+    except Exception as exc:
+        new_state["error"] = str(exc)
+    return _refresh_derived(new_state)

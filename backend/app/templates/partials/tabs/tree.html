@@ -33,7 +33,14 @@
       {% endfor %}
 
       {% for node in tree_view.nodes %}
-      <g transform="translate({{ node.x }}, {{ node.y }})">
+      <g
+        transform="translate({{ node.x }}, {{ node.y }})"
+        hx-post="/tree/jump"
+        hx-target="#app-shell"
+        hx-swap="innerHTML"
+        hx-vals='{"node_id": "{{ node.id }}"}'
+        class="tree-node-group"
+      >
         <rect
           width="{{ node.width }}"
           height="{{ node.height }}"

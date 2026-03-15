@@ -5,6 +5,7 @@ from .simulation_flow import (
     continue_simulation,
     generate_story,
     get_branch_by_id,
+    jump_to_node,
     select_branch,
     start_simulation,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "generate_story",
     "get_branch_by_id",
     "initial_state",
+    "jump_to_node",
     "select_branch",
     "start_simulation",
 ]

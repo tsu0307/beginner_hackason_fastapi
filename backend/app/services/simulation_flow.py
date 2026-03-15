@@ -138,22 +138,66 @@ def get_branch_by_id(state: dict[str, Any], branch_id: str) -> dict[str, Any]:
 async def select_branch(state: dict[str, Any], branch: dict[str, Any]) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
-        history = [node["event"] for node in new_state.get("nodes", []) if node.get("selected")]
+        nodes = new_state.get("nodes", [])
+
+        # 1. 履歴の構築（現在の選択状態に基づいて取得）
+        history = [node["event"] for node in nodes if node.get("selected")]
+        
+        # 2. 結果の生成
         runtime_profile = {**new_state["profile"], "current_age": branch["age"]}
         system, message = build_result_prompt(runtime_profile, branch["event"], history)
         text = await asyncio.to_thread(call_llm, new_state.get("provider", "openai"), system, message, True)
         parsed = parse_json_text(text)
-        selected_branch = {
-            **branch,
-            "selected": True,
-            "result": parsed.get("result_summary", parsed.get("result", "結果を生成できませんでした。")),
-            "happiness": parsed.get("happiness", "medium"),
-        }
-        others = [{**item, "selected": False} for item in new_state["branches"] if item["id"] != branch["id"]]
-        new_state["nodes"].append(selected_branch)
-        new_state["nodes"].extend(others)
+        
+        result_text = parsed.get("result_summary", parsed.get("result", "結果を生成できませんでした。"))
+        happiness_val = parsed.get("happiness", "medium")
+
+        # 3. ノードの統合（マージ）または追加
+        parent_id = branch.get("parent_id")
+        existing_node = next((n for n in nodes if n.get("parent_id") == parent_id and n.get("event") == branch["event"]), None)
+        
+        if existing_node:
+            # 既存ノードを更新
+            existing_node.update({
+                "selected": True,
+                "result": result_text,
+                "happiness": happiness_val,
+                "year": branch.get("year"),
+                "age": branch.get("age"),
+            })
+            target_id = existing_node["id"]
+        else:
+            # 新規ノードとして追加
+            selected_node = {
+                **branch,
+                "selected": True,
+                "result": result_text,
+                "happiness": happiness_val,
+            }
+            nodes.append(selected_node)
+            target_id = selected_node["id"]
+
+        # 4. 他の候補も（重複がなければ）追加。ただし未選択とする。
+        current_branches = new_state.get("branches", [])
+        for b in current_branches:
+            if b["id"] != branch["id"]:
+                if not any(n for n in nodes if n.get("parent_id") == parent_id and n.get("event") == b["event"]):
+                    nodes.append({**b, "selected": False})
+
+        # 5. パスベースの選択状態更新
+        # ルートから今回選択したノードまでのパス上のノードのみを selected=True にし、それ以外を False にする
+        path_ids = set()
+        curr_id = target_id
+        while curr_id:
+            path_ids.add(curr_id)
+            parent = next((n for n in nodes if n["id"] == curr_id), None)
+            curr_id = parent.get("parent_id") if parent else None
+            
+        for node in nodes:
+            node["selected"] = node["id"] in path_ids
+
         new_state["branches"] = []
-        new_state["current_node_id"] = selected_branch["id"]
+        new_state["current_node_id"] = target_id
         new_state["stage"] = "result"
         new_state["panel"] = "main"
         new_state["error"] = ""

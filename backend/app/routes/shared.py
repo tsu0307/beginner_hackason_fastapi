@@ -94,6 +94,8 @@ def save_state(session_id: str, state: dict[str, Any]) -> None:
 
 
 def build_context(request: Request, state: dict[str, Any]) -> dict[str, Any]:
+    pending_nodes = [{**branch, "is_branch_candidate": True} for branch in state.get("branches", [])]
+    tree_nodes = [*state.get("nodes", []), *pending_nodes]
     return {
         "request": request,
         "state": state,
@@ -104,8 +106,8 @@ def build_context(request: Request, state: dict[str, Any]) -> dict[str, Any]:
         "branches": state.get("branches", []),
         "current_node": state.get("current_node"),
         "selected_nodes": state.get("selected_nodes", []),
-        "tree_nodes": state.get("nodes", []),
-        "tree_view": build_tree_view_model(state.get("nodes", [])),
+        "tree_nodes": tree_nodes,
+        "tree_view": build_tree_view_model(tree_nodes, current_node_id=state.get("current_node_id")),
         "story": state.get("story", ""),
         "provider_options": PROVIDER_OPTIONS,
         "interest_options": INTEREST_OPTIONS,

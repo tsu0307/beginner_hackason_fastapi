@@ -51,16 +51,7 @@ def _parse_branch_response(payload: Any) -> list[BranchCandidate]:
     try:
         return BranchResponse.model_validate(payload).branches
     except ValidationError as exc:
-        raise ValueError(f"分岐JSONの形式が不正です: {exc}") from exc
-
-
-def _current_point(state: dict[str, Any]) -> tuple[int, int]:
-    current_node = state.get("current_node")
-    if current_node:
-        return int(current_node["year"]), int(current_node["age"])
-
-    profile = state["profile"]
-    return int(profile["birth_year"]) + int(profile["current_age"]), int(profile["current_age"])
+        raise ValueError(f"分岐候補JSONの形式が不正です: {exc}") from exc
 
 
 async def _generate_branches(
@@ -89,11 +80,18 @@ async def _generate_branches(
     ]
 
 
-async def start_simulation(state: dict[str, Any], event: str, event_year: int, event_age: int) -> dict[str, Any]:
+async def start_simulation(
+    state: dict[str, Any],
+    event: str,
+    event_year: int,
+    event_age: int,
+    *,
+    panel: str = "main",
+) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
         if event_age <= 0 or event_age >= 100:
-            raise ValueError("イベント年齢は 1 から 99 の範囲で入力してください。")
+            raise ValueError("イベント時の年齢は 1 から 99 の範囲で入力してください。")
 
         root = {
             "id": _new_id(),
@@ -120,10 +118,11 @@ async def start_simulation(state: dict[str, Any], event: str, event_year: int, e
             current_age=root["age"],
         )
         new_state["stage"] = "branches"
-        new_state["panel"] = "main"
+        new_state["panel"] = panel
         new_state["error"] = ""
     except Exception as exc:
         new_state["stage"] = "event"
+        new_state["panel"] = panel
         new_state["error"] = str(exc)
     return _refresh_derived(new_state)
 
@@ -131,11 +130,11 @@ async def start_simulation(state: dict[str, Any], event: str, event_year: int, e
 def get_branch_by_id(state: dict[str, Any], branch_id: str) -> dict[str, Any]:
     branch = next((branch for branch in state.get("branches", []) if branch["id"] == branch_id), None)
     if not branch:
-        raise ValueError("分岐候補が見つかりません。")
+        raise ValueError("指定された分岐候補が見つかりません。")
     return branch
 
 
-async def select_branch(state: dict[str, Any], branch: dict[str, Any]) -> dict[str, Any]:
+async def select_branch(state: dict[str, Any], branch: dict[str, Any], *, panel: str = "main") -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
         history = [node["event"] for node in new_state.get("nodes", []) if node.get("selected")]
@@ -155,7 +154,7 @@ async def select_branch(state: dict[str, Any], branch: dict[str, Any]) -> dict[s
         new_state["branches"] = []
         new_state["current_node_id"] = selected_branch["id"]
         new_state["stage"] = "result"
-        new_state["panel"] = "main"
+        new_state["panel"] = panel
         new_state["error"] = ""
     except Exception as exc:
         new_state["error"] = str(exc)
@@ -215,6 +214,31 @@ async def continue_simulation(state: dict[str, Any]) -> dict[str, Any]:
     return _refresh_derived(new_state)
 
 
+async def generate_branches_for_node(state: dict[str, Any], node_id: str, *, panel: str = "tree") -> dict[str, Any]:
+    new_state = copy.deepcopy(state)
+    try:
+        target = next((node for node in new_state.get("nodes", []) if node["id"] == node_id), None)
+        if not target:
+            raise ValueError("指定されたノードが見つかりません。")
+        history = [node["event"] for node in new_state["nodes"] if node.get("selected")]
+        new_state["branches"] = await _generate_branches(
+            new_state,
+            new_state["profile"],
+            target["event"],
+            history,
+            parent_id=target["id"],
+            current_year=int(target["year"]),
+            current_age=int(target["age"]),
+        )
+        new_state["current_node_id"] = target["id"]
+        new_state["stage"] = "branches"
+        new_state["panel"] = panel
+        new_state["error"] = ""
+    except Exception as exc:
+        new_state["error"] = str(exc)
+    return _refresh_derived(new_state)
+
+
 async def generate_story(state: dict[str, Any]) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
@@ -246,13 +270,10 @@ async def jump_to_node(state: dict[str, Any], node_id: str) -> dict[str, Any]:
     new_state = copy.deepcopy(state)
     try:
         nodes = new_state.get("nodes", [])
-        target = next((n for n in nodes if n["id"] == node_id), None)
+        target = next((node for node in nodes if node["id"] == node_id), None)
         if not target:
             raise ValueError("指定されたノードが見つかりません。")
-
-        # ターゲットノードを現在のノードに設定
         new_state["current_node_id"] = node_id
-        # ステージを結果画面にし、パネルをメインに切り替える
         new_state["stage"] = "result"
         new_state["panel"] = "main"
         new_state["error"] = ""

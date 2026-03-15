@@ -25,6 +25,22 @@ class BranchCandidate(BaseModel):
             raise ValueError("event must not be empty")
         return cleaned
 
+    @field_validator("stability", "challenge", mode="before")
+    @classmethod
+    def normalize_level(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip().lower()
+        mapping = {
+            "high": "high",
+            "medium": "medium",
+            "low": "low",
+            "高": "high",
+            "中": "medium",
+            "低": "low",
+        }
+        return mapping.get(normalized, normalized)
+
     @model_validator(mode="after")
     def validate_event_type_duration(self) -> "BranchCandidate":
         if self.event_type == "instant_event" and self.duration_years != 0:

@@ -35,7 +35,7 @@ def create_profile(name: str, birth_year: int, interests: list[str], personality
 
     return {
         "stage": "event",
-        "panel": "main",
+        "panel": "tree",
         "error": "",
         "provider": "openai",
         "profile": {

@@ -3,6 +3,7 @@
 from .simulation_flow import (
     add_custom_branch,
     continue_simulation,
+    generate_branches_for_node,
     generate_story,
     get_branch_by_id,
     jump_to_node,
@@ -18,6 +19,7 @@ __all__ = [
     "build_tree_view_model",
     "continue_simulation",
     "create_profile",
+    "generate_branches_for_node",
     "generate_story",
     "get_branch_by_id",
     "initial_state",

@@ -8,6 +8,14 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 StabilityLevel = Literal["high", "medium", "low"]
 ChallengeLevel = Literal["high", "medium", "low"]
 EventType = Literal["instant_event", "progression_event"]
+LEVEL_ALIASES = {
+    "high": "high",
+    "medium": "medium",
+    "low": "low",
+    "高": "high",
+    "中": "medium",
+    "低": "low",
+}
 
 
 class BranchCandidate(BaseModel):
@@ -24,6 +32,16 @@ class BranchCandidate(BaseModel):
         if not cleaned:
             raise ValueError("event must not be empty")
         return cleaned
+
+    @field_validator("stability", "challenge", mode="before")
+    @classmethod
+    def normalize_level(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        normalized = LEVEL_ALIASES.get(value.strip().lower())
+        if normalized:
+            return normalized
+        return value
 
     @model_validator(mode="after")
     def validate_event_type_duration(self) -> "BranchCandidate":

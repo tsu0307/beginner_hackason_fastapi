@@ -1,5 +1,3 @@
-"""Gemini API 呼び出しをまとめる。"""
-
 from __future__ import annotations
 
 import os

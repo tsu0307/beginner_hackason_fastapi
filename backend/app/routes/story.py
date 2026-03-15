@@ -1,5 +1,3 @@
-"""役割: ストーリー要約タブのルートをまとめる。"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Request

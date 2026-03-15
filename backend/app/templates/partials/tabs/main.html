@@ -3,7 +3,6 @@
   <form class="stack" hx-post="/setup" hx-target="#app-shell" hx-swap="innerHTML">
     <label>
       <span>使用するAPI</span>
-      <span class="hint">`.env.local` に設定済みのキーを使います。</span>
       <div class="tag-grid">
         {% for option in provider_options %}
         <label class="tag-option">
@@ -50,14 +49,15 @@
         {% endfor %}
       </div>
     </label>
-    <button class="button" type="submit">プロフィールを開始</button>
+    <button class="button" type="submit">プロフィールを登録</button>
   </form>
   {% elif stage == "event" %}
   <div class="screen-body">
     <div class="summary-bar">
-      <strong>{{ profile.name }}</strong>
-      <span>{{ profile.current_age }}歳</span>
-      <span class="pill">API: {{ state.provider|upper }}</span>
+      <div class="profile-inline">
+        <strong>{{ profile.name }}</strong>
+        <span>{{ profile.current_age }}歳</span>
+      </div>
     </div>
     <form class="stack" hx-post="/event" hx-target="#app-shell" hx-swap="innerHTML">
       <label>
@@ -69,12 +69,12 @@
           required
         ></textarea>
       </label>
-      <div class="inline-form">
-        <label>
+      <div class="stack event-timing-form">
+        <label class="field-left">
           <span>その時の西暦</span>
           <input type="number" name="event_year" placeholder="2024" required>
         </label>
-        <label>
+        <label class="field-left">
           <span>その時の年齢</span>
           <input type="number" name="event_age" placeholder="18" required>
         </label>
@@ -83,75 +83,121 @@
     </form>
   </div>
   {% elif stage == "branches" %}
-  <div class="screen-body">
-    <div class="section-head">
+  <div class="screen-body simulation-split">
+    <section class="simulation-main stack">
+      <div class="section-head">
       <div>
         <h2>分岐候補</h2>
         <p>次に進める候補を選択します。</p>
       </div>
-      <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
-    <div class="branch-list">
-      {% for branch in branches %}
-      <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML">
+      <div class="branch-list branch-list-narrow">
+        {% for branch in branches %}
+        <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML">
         <input type="hidden" name="branch_id" value="{{ branch.id }}">
         <p class="branch-event">{{ branch.event }}</p>
-        <div class="meta-row">
+        <div class="meta-row branch-meta-row">
           <span>{{ branch.year }}年</span>
           <span>{{ branch.age }}歳</span>
         </div>
-        <div class="meta-row">
-          <span>安定性: {{ branch.stability }}</span>
-          <span>挑戦度: {{ branch.challenge }}</span>
+        <div class="meta-row branch-meta-row">
+          <span>
+            安定性:
+            <span class="level-text level-{{ branch.stability }}">
+              {{ "大" if branch.stability == "high" else "中" if branch.stability == "medium" else "小" }}
+            </span>
+          </span>
+          <span>
+            挑戦度:
+            <span class="level-text level-{{ branch.challenge }}">
+              {{ "大" if branch.challenge == "high" else "中" if branch.challenge == "medium" else "小" }}
+            </span>
+          </span>
         </div>
-        <button class="button" type="submit">この分岐を選ぶ</button>
+          <button class="button" type="submit">この分岐を選ぶ</button>
+        </form>
+        {% endfor %}
+      </div>
+      <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML">
+        <label>
+          <span>分岐を自由入力で追加</span>
+          <input type="text" name="event" placeholder="例: 1年後に起業へ進む" required>
+        </label>
+        <button class="button button-secondary" type="submit">追加</button>
       </form>
-      {% endfor %}
-    </div>
-    <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML">
-      <label>
-        <span>分岐を自由入力で追加</span>
-        <input type="text" name="event" placeholder="例: 1年後に起業へ進む" required>
-      </label>
-      <button class="button button-secondary" type="submit">追加</button>
-    </form>
+    </section>
+    <aside class="history-panel">
+      <h3>選択履歴</h3>
+      <ol class="history-list">
+        {% for node in selected_nodes %}
+        <li>
+          <strong>{{ node.event }}</strong>
+          <span>{{ node.year }}年 / {{ node.age }}歳</span>
+          {% if node.result %}
+          <span>{{ node.result }}</span>
+          {% endif %}
+        </li>
+        {% else %}
+        <li>まだ履歴はありません。</li>
+        {% endfor %}
+      </ol>
+    </aside>
   </div>
   {% elif stage == "result" %}
-  <div class="screen-body">
-    <div class="section-head">
+  <div class="screen-body simulation-split">
+    <section class="simulation-main stack">
+      <div class="section-head">
       <div>
         <h2>選択結果</h2>
         <p>選んだ分岐の結果です。</p>
       </div>
-      <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
-    <div class="result-box">
-      <h3>選んだ出来事</h3>
-      <p>{{ current_node.event }}</p>
-      <div class="meta-row">
-        <span>{{ current_node.year }}年</span>
-        <span>{{ current_node.age }}歳</span>
+      <div class="result-box">
+        <h3>選んだ出来事</h3>
+        <p>{{ current_node.event }}</p>
+        <div class="meta-row branch-meta-row">
+          <span>{{ current_node.year }}年</span>
+          <span>{{ current_node.age }}歳</span>
+        </div>
       </div>
-    </div>
-    <div class="result-box">
-      <h3>結果</h3>
-      <p>{{ current_node.result }}</p>
-    </div>
-    <div class="result-box">
-      <h3>幸福度</h3>
-      <p>{{ current_node.happiness }}</p>
-    </div>
-    <div class="actions">
-      <button
-        class="button"
-        type="button"
-        hx-post="/continue"
-        hx-target="#app-shell"
-        hx-swap="innerHTML"
-      >
-        次の分岐へ進む
-      </button>
-    </div>
+      <div class="result-box">
+        <h3>結果</h3>
+        <p>{{ current_node.result }}</p>
+      </div>
+      <div class="result-box">
+        <h3>幸福度</h3>
+        <p class="level-text level-{{ 'high' if current_node.happiness in ['high', '高', '大'] else 'medium' if current_node.happiness in ['medium', '中'] else 'low' }}">
+          {{ "大" if current_node.happiness in ["high", "高", "大"] else "中" if current_node.happiness in ["medium", "中"] else "小" }}
+        </p>
+      </div>
+      <div class="actions">
+        <button
+          class="button"
+          type="button"
+          hx-post="/continue"
+          hx-target="#app-shell"
+          hx-swap="innerHTML"
+        >
+          次の分岐へ進む
+        </button>
+      </div>
+    </section>
+    <aside class="history-panel">
+      <h3>選択履歴</h3>
+      <ol class="history-list">
+        {% for node in selected_nodes %}
+        <li>
+          <strong>{{ node.event }}</strong>
+          <span>{{ node.year }}年 / {{ node.age }}歳</span>
+          {% if node.result %}
+          <span>{{ node.result }}</span>
+          {% endif %}
+        </li>
+        {% else %}
+        <li>まだ履歴はありません。</li>
+        {% endfor %}
+      </ol>
+    </aside>
   </div>
   {% endif %}
 </div>

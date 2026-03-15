@@ -1,0 +1,39 @@
+このアプリは、入力したプロフィールと出来事をもとに人生の分岐をシミュレーションするWebアプリです。
+
+【起動方法】
+1. backend/requirements.txt を使って依存関係をインストールする
+   python -m pip install -r backend/requirements.txt
+2. ルートにある .env.local に API キーを設定する
+   OPENAI_API_KEY=...
+   GEMINI_API_KEY=...
+3. サーバーを起動する
+   python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+4. ブラウザで http://127.0.0.1:8000 を開く
+
+【基本的な使い方】
+1. 使用するAPIを OpenAI または Gemini から選ぶ
+2. 名前、生年、興味、性格を入力してプロフィールを開始する
+3. 最初の出来事、その時の西暦、その時の年齢を入力する
+4. 分岐候補の中から進みたい内容を選ぶ
+5. 結果を確認し、必要なら次の分岐へ進む
+6. ツリー表示で分岐全体を確認する
+7. ストーリー要約で選択履歴の要約を生成する
+
+【画面の説明】
+- シミュレーション
+  分岐生成、選択、結果確認を行うメイン画面
+- ツリー
+  これまでの分岐をノード構造で確認する画面
+- ストーリー要約
+  選択した分岐履歴を文章でまとめる画面
+
+【分岐データについて】
+- AIは event, stability, challenge, event_type, duration_years を返す
+- year と age はアプリ側で再計算する
+- 各ノードには次の情報を保存する
+  event, stability, challenge, event_type, duration_years, year, age, parent_id, id
+
+【補足】
+- 最初の出来事で入力した西暦と年齢は、そのまま初期ノードに使用する
+- event_type は内部処理で使うが、UIには表示しない
+- .env.local は Git に含めない

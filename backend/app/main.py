@@ -1,3 +1,12 @@
+"""FastAPI アプリの起動エントリ。
+
+このファイルは Web アプリ全体の初期化を担当する。
+リポジトリ直下の `.env.local` を読み込み、OpenAI や Gemini の API キーを
+プロセス環境変数へ設定したうえで、FastAPI 本体を生成する。
+さらに `/static` に静的ファイル配信をマウントし、routes パッケージで
+定義した各画面・各操作用のルーターをアプリへ登録する。
+"""
+
 from pathlib import Path
 import os
 

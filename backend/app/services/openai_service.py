@@ -1,5 +1,3 @@
-"""役割: OpenAI API 呼び出しと応答 JSON の整形を行う。"""
-
 from __future__ import annotations
 
 import json

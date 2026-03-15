@@ -1,5 +1,3 @@
-"""役割: シミュレーション本体タブのルートをまとめる。"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Form, Request

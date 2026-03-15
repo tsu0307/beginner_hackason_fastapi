@@ -4,13 +4,9 @@
       <h2>ツリー表示</h2>
       <p>選択した分岐をツリー構造で確認できます。</p>
     </div>
-    <div class="meta-row">
-      <span class="pill">API: {{ state.provider|upper }}</span>
-      <span class="pill">全ノード数: {{ tree_nodes|length }}</span>
-    </div>
   </div>
   {% if profile %}
-  <div class="summary-bar">
+  <div class="profile-inline">
     <strong>{{ profile.name }}</strong>
     <span>{{ profile.current_age }}歳</span>
   </div>
@@ -46,7 +42,12 @@
             <div class="tree-node-title">{{ node.title }}</div>
             <div class="tree-node-meta">{{ node.year }}年 / {{ node.age }}歳</div>
             {% if node.happiness %}
-            <div class="tree-node-meta">幸福度: {{ node.happiness }}</div>
+            <div class="tree-node-meta">
+              幸福度:
+              <span class="level-text level-{{ 'high' if node.happiness in ['high', '高', '大'] else 'medium' if node.happiness in ['medium', '中'] else 'low' }}">
+                {{ "大" if node.happiness in ["high", "高", "大"] else "中" if node.happiness in ["medium", "中"] else "小" }}
+              </span>
+            </div>
             {% endif %}
           </div>
         </foreignObject>

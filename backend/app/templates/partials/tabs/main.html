@@ -1,9 +1,9 @@
 <div class="screen-body">
   {% if stage == "setup" %}
-  <form class="stack" hx-post="/setup" hx-target="#app-shell" hx-swap="innerHTML">
+  <form class="stack" hx-post="/setup" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
     <label>
       <span>使用するAPI</span>
-      <span class="hint">`.env.local` に設定済みのキーだけ使えます。</span>
+      <span class="hint">`.env.local` に設定済みのキーを使います。</span>
       <div class="tag-grid">
         {% for option in provider_options %}
         <label class="tag-option">
@@ -20,14 +20,14 @@
     </label>
     <label>
       <span>名前</span>
-      <input type="text" name="name" placeholder="田中 花子" required>
+      <input type="text" name="name" placeholder="田中 太郎" required>
     </label>
     <label>
       <span>生年</span>
       <input type="number" name="birth_year" placeholder="2001" required>
     </label>
     <label>
-      <span>興味・価値観</span>
+      <span>興味</span>
       <span class="hint">複数選択できます。</span>
       <div class="tag-grid">
         {% for option in interest_options %}
@@ -50,7 +50,7 @@
         {% endfor %}
       </div>
     </label>
-    <button class="button" type="submit">プロフィールを作成</button>
+    <button class="button" type="submit">プロフィールを開始</button>
   </form>
   {% elif stage == "event" %}
   <div class="screen-body">
@@ -59,16 +59,26 @@
       <span>{{ profile.current_age }}歳</span>
       <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
-    <form class="stack" hx-post="/event" hx-target="#app-shell" hx-swap="innerHTML">
+    <form class="stack" hx-post="/event" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
       <label>
         <span>最初の出来事</span>
         <textarea
           name="event"
           rows="4"
-          placeholder="例: 大学で情報系を学ぶ、地方で就職する"
+          placeholder="例: 大学で情報系を学び、地元で就職する"
           required
         ></textarea>
       </label>
+      <div class="inline-form">
+        <label>
+          <span>その時の西暦</span>
+          <input type="number" name="event_year" placeholder="2024" required>
+        </label>
+        <label>
+          <span>その時の年齢</span>
+          <input type="number" name="event_age" placeholder="18" required>
+        </label>
+      </div>
       <button class="button" type="submit">分岐を生成</button>
     </form>
   </div>
@@ -77,15 +87,19 @@
     <div class="section-head">
       <div>
         <h2>分岐候補</h2>
-        <p>次に起こりうる選択肢です。</p>
+        <p>次に進める候補を選択します。</p>
       </div>
       <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
     <div class="branch-list">
       {% for branch in branches %}
-      <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML">
+      <form class="branch" hx-post="/branch/select" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
         <input type="hidden" name="branch_id" value="{{ branch.id }}">
         <p class="branch-event">{{ branch.event }}</p>
+        <div class="meta-row">
+          <span>{{ branch.year }}年</span>
+          <span>{{ branch.age }}歳</span>
+        </div>
         <div class="meta-row">
           <span>安定性: {{ branch.stability }}</span>
           <span>挑戦度: {{ branch.challenge }}</span>
@@ -94,10 +108,10 @@
       </form>
       {% endfor %}
     </div>
-    <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML">
+    <form class="stack inline-form" hx-post="/branch/custom" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator">
       <label>
         <span>分岐を自由入力で追加</span>
-        <input type="text" name="event" placeholder="例: 1年間休学して海外へ行く" required>
+        <input type="text" name="event" placeholder="例: 1年後に起業へ進む" required>
       </label>
       <button class="button button-secondary" type="submit">追加</button>
     </form>
@@ -107,13 +121,17 @@
     <div class="section-head">
       <div>
         <h2>選択結果</h2>
-        <p>直近で選んだ分岐の結果です。</p>
+        <p>選んだ分岐の結果です。</p>
       </div>
       <span class="pill">API: {{ state.provider|upper }}</span>
     </div>
     <div class="result-box">
       <h3>選んだ出来事</h3>
       <p>{{ current_node.event }}</p>
+      <div class="meta-row">
+        <span>{{ current_node.year }}年</span>
+        <span>{{ current_node.age }}歳</span>
+      </div>
     </div>
     <div class="result-box">
       <h3>結果</h3>
@@ -129,7 +147,7 @@
         type="button"
         hx-post="/continue"
         hx-target="#app-shell"
-        hx-swap="innerHTML"
+        hx-indicator="#loading-indicator"
       >
         次の分岐へ進む
       </button>

@@ -11,6 +11,7 @@ from ..services.simulator import (
     create_profile,
     get_branch_by_id,
     initial_state,
+    jump_to_node,
     select_branch,
     start_simulation,
 )
@@ -55,9 +56,14 @@ async def setup(
 
 
 @router.post("/event", response_class=HTMLResponse)
-async def submit_event(request: Request, event: str = Form(...)) -> HTMLResponse:
+async def submit_event(
+    request: Request,
+    event: str = Form(...),
+    event_year: int = Form(...),
+    event_age: int = Form(...),
+) -> HTMLResponse:
     session_id, state = current_state(request)
-    state = await start_simulation(state, event)
+    state = await start_simulation(state, event, event_year, event_age)
     save_state(session_id, state)
     return render_app(request, session_id, state)
 
@@ -91,5 +97,13 @@ async def continue_route(request: Request) -> HTMLResponse:
 async def main_panel(request: Request) -> HTMLResponse:
     session_id, state = current_state(request)
     state["panel"] = "main"
+    save_state(session_id, state)
+    return render_app(request, session_id, state)
+
+
+@router.post("/tree/jump", response_class=HTMLResponse)
+async def jump_to_tree_node(request: Request, node_id: str = Form(...)) -> HTMLResponse:
+    session_id, state = current_state(request)
+    state = await jump_to_node(state, node_id)
     save_state(session_id, state)
     return render_app(request, session_id, state)

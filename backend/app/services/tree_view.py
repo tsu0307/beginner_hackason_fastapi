@@ -12,17 +12,17 @@ def _normalize_happiness(value: Any) -> str:
         "high": "high",
         "medium": "medium",
         "low": "low",
-        "\u9ad8": "high",
-        "\u4e2d": "medium",
-        "\u4f4e": "low",
+        "高": "high",
+        "中": "medium",
+        "低": "low",
     }
     if normalized in mapping:
         return mapping[normalized]
-    if "\u9ad8" in value:
+    if "高" in value:
         return "high"
-    if "\u4e2d" in value:
+    if "中" in value:
         return "medium"
-    if "\u4f4e" in value:
+    if "低" in value:
         return "low"
     return normalized
 
@@ -36,9 +36,9 @@ def _normalize_level(value: Any) -> str:
         "high": "high",
         "medium": "medium",
         "low": "low",
-        "\u9ad8": "high",
-        "\u4e2d": "medium",
-        "\u4f4e": "low",
+        "高": "high",
+        "中": "medium",
+        "低": "low",
     }
     return mapping.get(normalized, normalized)
 

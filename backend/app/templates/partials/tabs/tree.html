@@ -44,6 +44,30 @@
     </label>
     <button class="button button-secondary" type="submit">追加</button>
   </form>
+
+  <div class="actions">
+    <form hx-post="/tree/jump" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator" data-loading-text="未来を生成中...">
+      <input type="hidden" name="node_id" value="{{ current_node.id }}">
+      <input type="hidden" name="jump_years" value="10">
+      <button class="button button-secondary" type="submit">10年後へジャンプ</button>
+    </form>
+    <form hx-post="/tree/jump" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator" data-loading-text="未来を生成中...">
+      <input type="hidden" name="node_id" value="{{ current_node.id }}">
+      <input type="hidden" name="jump_years" value="20">
+      <button class="button button-secondary" type="submit">20年後へジャンプ</button>
+    </form>
+    <form hx-post="/tree/jump" hx-target="#app-shell" hx-swap="innerHTML" hx-indicator="#loading-indicator" data-loading-text="未来を生成中...">
+      <input type="hidden" name="node_id" value="{{ current_node.id }}">
+      <input type="hidden" name="jump_years" value="30">
+      <button class="button button-secondary" type="submit">30年後へジャンプ</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if last_jump %}
+  <div class="hint">
+    {{ last_jump.jump_years }}年後: {{ last_jump.future_year }}年 / {{ last_jump.future_age }}歳
+  </div>
   {% endif %}
 
   <div class="tree-canvas-wrap">

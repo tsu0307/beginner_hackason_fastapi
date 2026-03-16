@@ -110,6 +110,21 @@ def _score_to_happiness(score: int) -> str:
     return "low"
 
 
+def _normalize_event_for_age(event: Any, target_age: int) -> str:
+    text = str(event).strip() if event is not None else ""
+    if not text:
+        return text
+    if target_age < 15:
+        replacements = {
+            "高校生": "中学生",
+            "高校": "中学校",
+            "高等学校": "中学校",
+        }
+        for source, dest in replacements.items():
+            text = text.replace(source, dest)
+    return text
+
+
 def _sanitize_jump_title(title: Any) -> str:
     if not isinstance(title, str):
         return ""
@@ -174,15 +189,16 @@ def _build_node_from_branch(
     current_age: int,
     selected: bool = False,
 ) -> dict[str, Any]:
+    target_age = current_age + branch.duration_years
     return {
         "id": _new_id(),
-        "event": branch.event,
+        "event": _normalize_event_for_age(branch.event, target_age),
         "stability": branch.stability,
         "challenge": branch.challenge,
         "event_type": branch.event_type,
         "duration_years": branch.duration_years,
         "year": current_year + branch.duration_years,
-        "age": current_age + branch.duration_years,
+        "age": target_age,
         "parent_id": parent_id,
         "selected": selected,
         "visited": selected,

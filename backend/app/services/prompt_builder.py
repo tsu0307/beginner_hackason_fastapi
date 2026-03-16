@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-LVL_LABEL = {"high": "\u9ad8", "medium": "\u4e2d", "low": "\u4f4e"}
+LVL_LABEL = {"high": "高", "medium": "中", "low": "低"}
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 BRANCH_OUTPUT_RULES = """
@@ -64,6 +64,38 @@ Rules:
 - Use low when the outcome is clearly unfavorable overall
 - Use medium only for mixed or ambiguous outcomes
 - result_summary must explain the main reason for the happiness level
+""".strip()
+
+JUMP_OUTPUT_RULES = """
+Return JSON only.
+Use this schema:
+{
+  "jump_years": 10,
+  "future_age": 32,
+  "future_year": 2036,
+  "future_node": {
+    "title": "string",
+    "summary": "string",
+    "history_digest": "string"
+  },
+  "choices": [
+    {
+      "title": "string",
+      "summary": "string",
+      "stability": "high|medium|low",
+      "challenge": "high|medium|low",
+      "happiness": 72
+    }
+  ]
+}
+Rules:
+- choices must contain exactly 2 items
+- future_age must equal current_age + jump_years
+- future_year must equal current_year + jump_years
+- happiness must be an integer from 0 to 100
+- Do not include explicit ages, decades, or years in future_node.title or choices.title
+- Each choice must be a concrete continuation from the generated future node
+- The two choices must have clearly different directions
 """.strip()
 
 BRANCH_PROMPT_FILES = {
@@ -143,6 +175,29 @@ def build_custom_branch_prompt(profile: dict[str, str], event: str, history: lis
         ]
     )
     return system, f"{message}\n\n{CUSTOM_BRANCH_OUTPUT_RULES}"
+
+
+def build_jump_prompt(
+    profile: dict[str, str],
+    current_node: dict[str, str],
+    history: list[str],
+    jump_years: int,
+) -> tuple[str, str]:
+    system = "人生分岐シミュレーションの未来ジャンプ候補を JSON だけで生成してください。"
+    message = _fill_prompt(
+        _load_prompt_file("jump_promp.txt"),
+        {
+            "jump_years": str(jump_years),
+            "current_year": str(current_node["year"]),
+            "current_age": str(current_node["age"]),
+            "current_event": current_node["event"],
+            "mbti": profile.get("mbti", ""),
+            "interests": profile.get("interests", profile.get("values", "")),
+            "personality": profile.get("personality", ""),
+            "story_summary": " -> ".join(history) if history else "まだ履歴はありません。",
+        },
+    )
+    return system, f"{message}\n\n{JUMP_OUTPUT_RULES}"
 
 
 def build_story_prompt(profile: dict[str, str], nodes: list[dict[str, str]]) -> tuple[str, str]:

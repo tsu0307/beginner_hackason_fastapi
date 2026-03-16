@@ -112,6 +112,7 @@ def build_context(request: Request, state: dict[str, Any]) -> dict[str, Any]:
         "branches": state.get("branches", []),
         "current_node": state.get("current_node"),
         "selected_nodes": state.get("selected_nodes", []),
+        "last_jump": state.get("last_jump"),
         "tree_nodes": tree_nodes,
         "tree_view": build_tree_view_model(tree_nodes, current_node_id=state.get("current_node_id")),
         "story": state.get("story", ""),

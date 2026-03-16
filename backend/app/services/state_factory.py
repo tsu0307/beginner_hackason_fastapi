@@ -1,5 +1,3 @@
-"""役割: シミュレーション初期状態とプロフィール生成を提供する。"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,6 +18,7 @@ def initial_state() -> dict[str, Any]:
         "current_node": None,
         "selected_nodes": [],
         "story": "",
+        "last_jump": None,
     }
 
 
@@ -36,7 +35,7 @@ def create_profile(
     if not name.strip():
         raise ValueError("名前を入力してください。")
     if age <= 0 or age >= 100:
-        raise ValueError("生年の入力値が不正です。")
+        raise ValueError("誕生年の入力値が不正です。")
 
     joined_interests = " / ".join(item.strip() for item in interests if item.strip())
     joined_personality = " / ".join(item.strip() for item in personality if item.strip())
@@ -53,6 +52,7 @@ def create_profile(
             "name": name.strip(),
             "birth_year": birth_year,
             "current_age": age,
+            "current_year": current_year,
             "values": joined_interests,
             "interests": joined_interests,
             "personality": joined_personality,
@@ -65,4 +65,5 @@ def create_profile(
         "current_node": None,
         "selected_nodes": [],
         "story": "",
+        "last_jump": None,
     }

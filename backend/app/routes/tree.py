@@ -9,6 +9,7 @@ from ..services.simulator import (
     activate_existing_node,
     add_custom_branch,
     generate_branches_for_node,
+    generate_jump_branches,
     get_branch_by_id,
     select_branch,
     start_simulation,
@@ -69,5 +70,17 @@ async def tree_select_branch(request: Request, branch_id: str = Form(...)) -> HT
 async def tree_custom_branch(request: Request, event: str = Form(...)) -> HTMLResponse:
     session_id, state = current_state(request)
     state = await add_custom_branch(state, event, panel="tree")
+    save_state(session_id, state)
+    return render_app(request, session_id, state)
+
+
+@router.post("/tree/jump", response_class=HTMLResponse)
+async def tree_jump(
+    request: Request,
+    node_id: str = Form(...),
+    jump_years: int = Form(...),
+) -> HTMLResponse:
+    session_id, state = current_state(request)
+    state = await generate_jump_branches(state, node_id, jump_years, panel="tree")
     save_state(session_id, state)
     return render_app(request, session_id, state)

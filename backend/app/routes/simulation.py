@@ -11,7 +11,6 @@ from ..services.simulator import (
     create_profile,
     get_branch_by_id,
     initial_state,
-    jump_to_node,
     select_branch,
     start_simulation,
 )
@@ -99,13 +98,5 @@ async def continue_route(request: Request) -> HTMLResponse:
 async def main_panel(request: Request) -> HTMLResponse:
     session_id, state = current_state(request)
     state["panel"] = "main"
-    save_state(session_id, state)
-    return render_app(request, session_id, state)
-
-
-@router.post("/tree/jump", response_class=HTMLResponse)
-async def jump_to_tree_node(request: Request, node_id: str = Form(...)) -> HTMLResponse:
-    session_id, state = current_state(request)
-    state = await jump_to_node(state, node_id)
     save_state(session_id, state)
     return render_app(request, session_id, state)
